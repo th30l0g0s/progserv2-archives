@@ -3,81 +3,101 @@ require_once __DIR__ . '/../src/utils/autoloader.php';
 
 use References\ReferencesManager;
 use Spots\SpotsManager;
+use Ui\Html;
+use Ui\Labels;
+use Ui\View;
 
-$spots = [];
 $error = null;
 
 try {
     $spotsManager = new SpotsManager();
     $referencesManager = new ReferencesManager();
 
-    $spots = $spotsManager->getPublishedSpots();
     $cantons = $referencesManager->getCantons();
+    $accommodationTypes = $referencesManager->getAccommodationTypes();
+
+    // Les 3 lieux les mieux notés (les lieux sans avis passent après)
+    $spots = $spotsManager->getPublishedSpots();
+    usort($spots, fn ($a, $b) => ($b->getAverageRating() ?? 0) <=> ($a->getAverageRating() ?? 0));
+    $bestSpots = array_slice($spots, 0, 3);
 } catch (Throwable $e) {
-    // Le détail technique va dans le journal du serveur, jamais à l'écran en production
     error_log($e->getMessage());
+    http_response_code(500);
     $error = Config::isProduction() ? 'Les lieux ne peuvent pas être affichés pour le moment.' : $e->getMessage();
-}
-
-// Libellés provisoires (seront remplacés par la gestion multilingue)
-$accommodationLabels = [1 => 'Tente', 2 => '4x4', 3 => 'Camping-car'];
-
-// Échappe une valeur avant affichage (protection XSS)
-function e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-
-    <title>Accueil | site4night</title>
-</head>
+<?php View::render('head', ['title' => 'Accueil']); ?>
 
 <body>
+    <?php View::render('header', ['current' => 'home']); ?>
+
     <main class="container">
-        <h1>site4night</h1>
-        <p>Trouvez où passer la nuit en tente, en 4x4 ou en camping-car.</p>
+        <section class="hero">
+            <h1>Trouvez où passer la nuit, en pleine nature.</h1>
+            <p>
+                site4night réunit une communauté de voyageurs qui référencent, recherchent
+                et évaluent des lieux où dormir en tente, en 4x4 aménagé ou en camping-car, partout en Suisse.
+            </p>
+
+            <?php if ($error === null) { ?>
+                <!-- Accès rapide à la recherche : envoie les filtres à la page des lieux -->
+                <form action="/spots/" method="get" role="search">
+                    <select name="accommodation" aria-label="Type d'hébergement">
+                        <option value="">Tous les hébergements</option>
+                        <?php foreach ($accommodationTypes as $id => $code) { ?>
+                            <option value="<?= $id ?>"><?= Html::escape(Labels::accommodationType($code)) ?></option>
+                        <?php } ?>
+                    </select>
+                    <select name="canton" aria-label="Canton">
+                        <option value="">Tous les cantons</option>
+                        <?php foreach ($cantons as $code => $name) { ?>
+                            <option value="<?= Html::escape($code) ?>"><?= Html::escape($name) ?></option>
+                        <?php } ?>
+                    </select>
+                    <button type="submit">Rechercher</button>
+                </form>
+            <?php } ?>
+        </section>
 
         <?php if ($error !== null) { ?>
-            <p><mark><?= e($error) ?></mark></p>
+            <p><mark><?= Html::escape($error) ?></mark></p>
         <?php } else { ?>
-            <h2><?= count($spots) ?> lieux publiés</h2>
+            <h2>Les lieux les mieux notés</h2>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Lieu</th>
-                        <th>Canton</th>
-                        <th>Altitude</th>
-                        <th>Hébergement</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($spots as $spot) { ?>
-                        <tr>
-                            <td><?= e($spot->getName()) ?></td>
-                            <td><?= e($cantons[$spot->getCantonCode()] ?? $spot->getCantonCode()) ?></td>
-                            <td><?= $spot->getAltitude() !== null ? $spot->getAltitude() . ' m' : '–' ?></td>
-                            <td><?= e(implode(', ', array_map(fn (int $id) => $accommodationLabels[$id] ?? '?', $spot->getAccommodationTypeIds()))) ?></td>
-                            <td><?= $spot->getAverageRating() !== null ? $spot->getAverageRating() . ' / 5 (' . $spot->getReviewCount() . ')' : '–' ?></td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
+            <div class="spot-grid">
+                <?php foreach ($bestSpots as $spot) {
+                    View::render('spot-card', [
+                        'spot' => $spot,
+                        'cantons' => $cantons,
+                        'accommodationTypes' => $accommodationTypes,
+                    ]);
+                } ?>
+            </div>
+
+            <p><a href="/spots/" role="button" class="outline">Voir les <?= count($spots) ?> lieux</a></p>
         <?php } ?>
 
-        <footer>
-            <small>Projet réalisé dans le cadre du cours ProgServ2 à la <a href="https://heig-vd.ch">HEIG-VD</a>.</small>
-        </footer>
+        <h2>Comment ça marche ?</h2>
+        <div class="grid">
+            <article>
+                <h3>Recherchez</h3>
+                <p>Filtrez par type d'hébergement, canton et équipements : eau, toilettes, feu, électricité.</p>
+            </article>
+            <article>
+                <h3>Proposez</h3>
+                <p>Partagez vos lieux. Un administrateur les vérifie avant publication.</p>
+            </article>
+            <article>
+                <h3>Évaluez</h3>
+                <p>Laissez un avis après votre nuit pour aider les prochains voyageurs.</p>
+            </article>
+        </div>
     </main>
+
+    <?php View::render('footer'); ?>
 </body>
 
 </html>

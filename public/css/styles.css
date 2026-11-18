@@ -1,0 +1,156 @@
+/*
+ * Styles de site4night, par-dessus Pico CSS.
+ * Couleurs reprises des variables de la maquette Figma.
+ */
+:root {
+	--night: #16233a;
+	--night2: #2a3d5a;
+	--accent: #e8a13a;
+	--on-dark: #b4c0d0;
+}
+
+/* Couleur principale de Pico (liens, boutons).
+   Même sélecteur que Pico, sinon ses propres valeurs l'emportent. */
+:root:not([data-theme="dark"]),
+[data-theme="light"] {
+	--pico-primary: #b46f0f;
+	--pico-primary-background: var(--accent);
+	--pico-primary-border: var(--accent);
+	--pico-primary-hover: #8f5708;
+	--pico-primary-hover-background: #d18e2b;
+	--pico-primary-hover-border: #d18e2b;
+	--pico-primary-inverse: var(--night);
+	--pico-primary-focus: rgba(232, 161, 58, 0.35);
+	--pico-primary-underline: rgba(180, 111, 15, 0.5);
+}
+
+/* La page prend toute la hauteur : le pied de page reste en bas */
+body {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+main {
+	flex: 1;
+	padding-block: 2rem;
+}
+
+/* ---------- En-tête ---------- */
+.site-header {
+	background-color: var(--night);
+}
+
+.site-header a {
+	color: var(--on-dark);
+}
+
+.site-header a:hover,
+.site-header a[aria-current="page"] {
+	color: #fff;
+}
+
+.site-header .logo {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 700;
+	color: #fff;
+}
+
+.site-header .logo svg {
+	width: 1.5rem;
+	height: 1.5rem;
+	fill: var(--accent);
+}
+
+/* ---------- Pied de page ---------- */
+.site-footer {
+	padding-block: 1.5rem;
+	background-color: var(--night);
+	color: var(--on-dark);
+}
+
+.site-footer a {
+	color: #fff;
+}
+
+/* ---------- Accueil ---------- */
+.hero {
+	padding: 3rem 2rem;
+	margin-bottom: 2rem;
+	border-radius: var(--pico-border-radius);
+	background-color: var(--night2);
+	color: #fff;
+}
+
+.hero h1 {
+	color: #fff;
+}
+
+.hero p {
+	color: var(--on-dark);
+}
+
+/* ---------- Cartes de lieux ---------- */
+.spot-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 1rem;
+}
+
+.spot-card {
+	margin: 0;
+}
+
+.spot-card h3 {
+	margin-bottom: 0.25rem;
+	font-size: 1.15rem;
+}
+
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	padding: 0;
+	margin: 0;
+}
+
+.tags li {
+	list-style: none;
+	padding: 0.1rem 0.6rem;
+	border-radius: 999px;
+	background-color: #eef1f5;
+	font-size: 0.85rem;
+}
+
+.spot-card footer {
+	white-space: nowrap;
+}
+
+.stars {
+	color: var(--accent);
+	letter-spacing: 0.1em;
+}
+
+/* ---------- Avertissement légal ---------- */
+.legal-notice {
+	padding: 1rem;
+	border-left: 4px solid var(--accent);
+	background-color: #fdf5e9;
+	font-size: 0.9rem;
+}
+
+/* ---------- Formulaire de recherche ---------- */
+.search-form fieldset {
+	margin-bottom: 1rem;
+}
+
+.search-form .grid > * {
+	margin-bottom: 0;
+}
+
+.search-form fieldset label {
+	display: inline-block;
+	margin-right: 1rem;
+}
