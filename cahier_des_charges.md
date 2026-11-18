@@ -6,8 +6,8 @@
 
 | Membre         | Rôle principal                  | Contact                   |
 | -------------- | ------------------------------- | ------------------------- |
-| Laurent Ernst  | [ex. base de données, back-end] | laurent.ernst@heig-vd.ch  |
-| Samuel Develey | [ex. front-end, i18n]           | samuel.develey@heig-vd.ch |
+| Laurent Ernst  | Développement complet (back-end, front-end, BDD, déploiement) | laurent.ernst@heig-vd.ch  |
+| Samuel Develey | Infrastructure Docker, schémas BDD, wireframes — a quitté la formation en cours de projet | samuel.develey@heig-vd.ch |
 
 
 ## 2. Présentation du projet
