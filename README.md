@@ -68,8 +68,14 @@ Les lieux proposés par les utilisateurs sont validés par un administrateur ava
 │   ├── index.php            # Point d'entrée
 │   └── .htaccess            # HTTPS forcé, fichiers cachés bloqués
 ├── src/                     # Code PHP non accessible depuis le web
-│   ├── config.php           # Lecture de la configuration (env Docker ou config.local.php)
-│   └── class.php            # Classes de l'application (en cours)
+│   ├── utils/
+│   │   └── autoloader.php   # Chargement automatique des classes
+│   └── classes/             # Un namespace = un dossier, une classe = un fichier
+│       ├── Config.php       # Lecture de la configuration (env Docker ou config.local.php)
+│       ├── Database.php     # Connexion PDO partagée (+ DatabaseInterface)
+│       ├── Spots/           # Spot (lieu), SpotsManager (+ interfaces)
+│       ├── Users/           # User (compte), UsersManager (+ interfaces)
+│       └── References/      # ReferencesManager : cantons, types, équipements
 ├── docker/
 │   ├── php/                 # Image Apache + PHP 8.5 (Dockerfile, php.ini)
 │   └── db/init/             # Scripts SQL exécutés à la création de la BDD locale
@@ -153,12 +159,59 @@ Résumé (détails dans [`DEPLOIEMENT.md`](./DEPLOIEMENT.md)) :
 
 ### Fonctionnement de la configuration
 
-`src/config.php` cherche chaque valeur (hôte, nom de la base, utilisateur, mot de passe…) dans cet ordre :
+La classe `Config` (`src/classes/Config.php`) cherche chaque valeur (hôte, nom de la base, utilisateur, mot de passe…) dans cet ordre :
 
 1. les **variables d'environnement** : fournies par `docker-compose.yml` en local ;
 2. le fichier **`config.local.php`** : utilisé en production, où Docker n'existe pas.
 
 Le même code fonctionne ainsi dans les deux environnements, sans jamais écrire d'identifiant dans le dépôt.
+
+## Architecture du code
+
+L'application suit les principes de la programmation orientée objet vus en cours.
+
+### Chargement automatique
+
+Chaque page de `public/` commence par :
+
+```php
+require_once __DIR__ . '/../src/utils/autoloader.php';
+```
+
+`spl_autoload_register()` transforme le nom complet d'une classe en chemin de fichier : `Spots\SpotsManager` → `src/classes/Spots/SpotsManager.php`. Aucun autre `require` n'est nécessaire.
+
+### Entités et managers
+
+| Type | Rôle | Exemples |
+|---|---|---|
+| **Entité** | Représente une donnée. Les setters **valident** chaque valeur (`InvalidArgumentException` si invalide) : un objet est toujours dans un état correct. | `Spot`, `User` |
+| **Manager** | Lit et écrit les entités dans la base, uniquement avec des **requêtes préparées**. | `SpotsManager`, `UsersManager`, `ReferencesManager` |
+| **Interface** | Contrat que la classe doit respecter. | `SpotInterface`, `SpotsManagerInterface`… |
+
+Les managers reçoivent la base de données par leur constructeur (`DatabaseInterface`) : une seule connexion PDO est ouverte par requête HTTP.
+
+### Exemple d'utilisation
+
+```php
+use Spots\SpotsManager;
+
+$spotsManager = new SpotsManager();
+
+// Lieux publiés en Valais, accessibles en 4x4 (id 2), avec eau (id 1)
+$spots = $spotsManager->getPublishedSpots([
+    'canton' => 'VS',
+    'accommodation' => 2,
+    'amenities' => [1],
+]);
+```
+
+### Sécurité déjà en place
+
+- **Injection SQL :** requêtes préparées partout, `PDO::ATTR_EMULATE_PREPARES` désactivé.
+- **XSS :** toute valeur affichée passe par `htmlspecialchars()`.
+- **Mots de passe :** `password_hash()` / `password_verify()`, jamais stockés en clair.
+- **Erreurs :** le détail technique va dans le journal du serveur, jamais à l'écran en production.
+- **Validation côté serveur :** dans les setters des entités.
 
 ## Workflow Git
 
@@ -177,7 +230,7 @@ Conformément aux consignes du cours, cette section indique **quand**, **comment
 - **Fichiers concernés :** `src/config.php`, `config.local.example.php`, `public/.htaccess`, `deploy/deploy.sh`, `DEPLOIEMENT.md`, adaptation de `public/index.php`.
 - **Pourquoi :** le projet tournait uniquement sous Docker, où les identifiants de la base viennent de variables d'environnement. Infomaniak n'utilise pas Docker. Il fallait une solution qui fonctionne dans les deux environnements sans versionner de mot de passe.
 - **Comment ça fonctionne :**
-  - `src/config.php` définit une fonction `cfg()` qui lit d'abord la variable d'environnement (`getenv`), puis, si elle est absente, la valeur du tableau retourné par `config.local.php`. Le fichier renvoie un tableau associatif de configuration.
+  - `src/config.php` définissait une fonction `cfg()` qui lisait d'abord la variable d'environnement (`getenv`), puis, si elle était absente, la valeur du tableau retourné par `config.local.php`. Ce fichier a ensuite été remplacé par la classe `Config` (voir ci-dessous), qui applique la même logique.
   - `public/.htaccess` redirige HTTP vers HTTPS (sauf sur `localhost`), désactive l'affichage des erreurs PHP et renvoie une 404 pour tout fichier caché (`.env`, `.git`).
   - `deploy/deploy.sh` utilise `rsync` via SSH pour envoyer seulement le code nécessaire (le reste est exclu : Docker, maquettes, Markdown, `config.local.php`). L'option `--dry` simule l'envoi sans rien modifier.
   - `public/index.php` masque le détail des erreurs de connexion à la BDD en production, car il pourrait révéler l'hôte ou l'utilisateur.
@@ -188,6 +241,20 @@ Conformément aux consignes du cours, cette section indique **quand**, **comment
 - **Quand :** 18 novembre 2026.
 - **Pourquoi :** reprise de la documentation après le départ du binôme, pour regrouper en un seul document la présentation du projet, l'installation locale et le déploiement.
 - **Comment :** Claude a rédigé le texte à partir des fichiers existants du dépôt (cahier des charges, `DEPLOIEMENT.md`, `docker-compose.yml`). Le contenu a été relu et validé.
+
+### Claude (Anthropic) : structure orientée objet et autoload, novembre 2026
+
+- **Quand :** 18 novembre 2026, branche `feature/poo-autoload`.
+- **Fichiers concernés :** `src/utils/autoloader.php` et tout le dossier `src/classes/`, réécriture de `public/index.php`.
+- **Pourquoi :** passer d'un script de test procédural à une architecture orientée objet réutilisable par toutes les pages à venir, en suivant la convention du cours (dossier `classes/`, autoloader `spl_autoload_register`, paires entité / manager avec interfaces, comme dans l'exercice `Tools` du chapitre 4).
+- **Comment ça fonctionne :**
+  - `autoloader.php` convertit le namespace en chemin de fichier et l'inclut avec `require_once`.
+  - `Config` lit la configuration dans les variables d'environnement, puis dans `config.local.php` (chargé une seule fois grâce à une propriété statique).
+  - `Database` crée la connexion PDO à la première demande et la garde dans une propriété statique : tous les managers partagent la même connexion.
+  - `Spot` et `User` valident leurs données dans les setters. `Spot::fromDatabaseRow()` reconstruit un objet à partir d'une ligne SQL.
+  - `SpotsManager` récupère un lieu avec ses types d'hébergement et équipements grâce à des sous-requêtes `GROUP_CONCAT`, et calcule la note moyenne avec `AVG`. Les filtres de recherche ajoutent des conditions `EXISTS` avec un paramètre nommé par valeur. L'ajout et la modification utilisent une **transaction** : le lieu et ses liens sont enregistrés ensemble ou pas du tout.
+  - `UsersManager` hache les mots de passe avec `password_hash()`. Il transforme l'erreur MariaDB 1062 (doublon) en message lisible, et `verifyCredentials()` refuse les comptes désactivés.
+- **Intégration et vérification :** le code a été testé sur une base MariaDB 11 importée depuis `docker/db/init/02-site4night.sql`. Les tests couvrent la lecture, les filtres (comparés à des requêtes SQL écrites à la main), l'ajout, la modification, le refus et la suppression d'un lieu, la création de compte, la connexion, les doublons, la validation et une tentative d'injection SQL dans un filtre.
 
 <!-- TODO Laurent : ajouter ici toute autre utilisation d'IA (cahier des charges, maquette, SQL, code à venir), au même format. Si aucune autre aide n'a été utilisée, l'écrire explicitement. -->
 

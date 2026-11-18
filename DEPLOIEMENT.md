@@ -59,15 +59,15 @@ Le script n'envoie que `public/` et `src/` (+ `config.local.example.php`). Docke
 > Sans SSH : glisser `public/`, `src/` dans `sites/progserv2/` avec un client SFTP (Cyberduck, Transmit) ou le FTP Manager.
 
 ### 8. Vérifier — 2 min
-- `https://progserv2.laurenternst.ch` affiche « BDD : connexion OK — N lieux ».
-- `https://progserv2.laurenternst.ch/src/config.php` doit renvoyer une erreur 404 (preuve que la racine web est bien `public/`).
-- En cas de « Erreur BDD » : revoir les 4 valeurs de `config.local.php` (hôte et préfixes surtout).
+- `https://progserv2.laurenternst.ch` affiche la liste des lieux publiés.
+- `https://progserv2.laurenternst.ch/src/classes/Config.php` doit renvoyer une erreur 404 (preuve que la racine web est bien `public/`).
+- En cas de message « Les lieux ne peuvent pas être affichés » : revoir les 4 valeurs de `config.local.php` (hôte et préfixes surtout).
 
 ## Fichiers modifiés dans le dépôt
 
-- `src/config.php` (nouveau) : lit les variables d'environnement (Docker) puis, à défaut, `config.local.php` (Infomaniak).
+- `src/classes/Config.php` (remplace l'ancien `src/config.php`) : lit les variables d'environnement (Docker) puis, à défaut, `config.local.php` (Infomaniak).
 - `config.local.example.php` (nouveau) : modèle à copier sur le serveur.
-- `public/index.php` : utilise `src/config.php` ; en prod, masque le détail des erreurs BDD et le lien de test mail.
+- `public/index.php` : utilise les classes chargées par l'autoloader ; en prod, masque le détail des erreurs BDD et le lien de test mail.
 - `public/.htaccess` (nouveau) : HTTPS forcé (sauf `localhost`), erreurs masquées, fichiers cachés bloqués.
 - `deploy/deploy.sh` (nouveau) : envoi par rsync/SSH, avec mode simulation.
 - `.gitignore` : ajoute `config.local.php` et `.DS_Store`.
