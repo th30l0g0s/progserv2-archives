@@ -65,16 +65,23 @@ Les lieux proposés par les utilisateurs sont validés par un administrateur ava
 ```text
 .
 ├── public/                  # Racine web : seul dossier accessible depuis Internet
-│   ├── index.php            # Point d'entrée
-│   └── .htaccess            # HTTPS forcé, fichiers cachés bloqués
+│   ├── index.php            # Accueil
+│   ├── spots/
+│   │   ├── index.php        # Liste et recherche des lieux
+│   │   └── view.php         # Fiche d'un lieu (?id=…)
+│   ├── css/styles.css       # Styles par-dessus Pico CSS (couleurs de la maquette)
+│   └── .htaccess            # HTTPS forcé, fichiers cachés bloqués, pas de listing
 ├── src/                     # Code PHP non accessible depuis le web
 │   ├── utils/
 │   │   └── autoloader.php   # Chargement automatique des classes
+│   ├── components/          # Parties d'interface réutilisables (head, header, footer, spot-card)
 │   └── classes/             # Un namespace = un dossier, une classe = un fichier
 │       ├── Config.php       # Lecture de la configuration (env Docker ou config.local.php)
 │       ├── Database.php     # Connexion PDO partagée (+ DatabaseInterface)
 │       ├── Spots/           # Spot (lieu), SpotsManager (+ interfaces)
 │       ├── Users/           # User (compte), UsersManager (+ interfaces)
+│       ├── Reviews/         # Review (avis), ReviewsManager (+ interfaces)
+│       ├── Ui/              # View (composants), Html (échappement), Labels (libellés)
 │       └── References/      # ReferencesManager : cantons, types, équipements
 ├── docker/
 │   ├── php/                 # Image Apache + PHP 8.5 (Dockerfile, php.ini)
@@ -193,6 +200,29 @@ require_once __DIR__ . '/../src/utils/autoloader.php';
 
 Les managers reçoivent la base de données par leur constructeur (`DatabaseInterface`) : une seule connexion PDO est ouverte par requête HTTP.
 
+### Parties d'interface réutilisables
+
+Les éléments communs à toutes les pages sont dans `src/components/` et affichés avec `Ui\View::render()` :
+
+```php
+<?php View::render('head', ['title' => 'Lieux']); ?>
+<body>
+    <?php View::render('header', ['current' => 'spots']); ?>
+    ...
+    <?php View::render('footer'); ?>
+</body>
+```
+
+Les clés du tableau deviennent des variables dans le composant. Le composant `spot-card` affiche un lieu sous forme de carte, sur l'accueil comme dans la liste.
+
+### Pages
+
+| Page | URL | Accès |
+|---|---|---|
+| Accueil | `/` | Public |
+| Liste et recherche des lieux | `/spots/` | Public |
+| Fiche d'un lieu | `/spots/view.php?id=…` | Public (lieux publiés uniquement, sinon 404) |
+
 ### Exemple d'utilisation
 
 ```php
@@ -211,7 +241,8 @@ $spots = $spotsManager->getPublishedSpots([
 ### Sécurité déjà en place
 
 - **Injection SQL :** requêtes préparées partout, `PDO::ATTR_EMULATE_PREPARES` désactivé.
-- **XSS :** toute valeur affichée passe par `htmlspecialchars()`.
+- **XSS :** toute valeur affichée passe par `Ui\Html::escape()` (`htmlspecialchars()`).
+- **Paramètres d'URL :** les filtres de recherche et l'identifiant d'un lieu sont validés (`filter_var`, comparaison avec les listes de référence). Une valeur inconnue est ignorée ou mène à une 404.
 - **Mots de passe :** `password_hash()` / `password_verify()`, jamais stockés en clair.
 - **Erreurs :** le détail technique va dans le journal du serveur, jamais à l'écran en production.
 - **Validation côté serveur :** dans les setters des entités.
@@ -258,6 +289,20 @@ Conformément aux consignes du cours, cette section indique **quand**, **comment
   - `SpotsManager` récupère un lieu avec ses types d'hébergement et équipements grâce à des sous-requêtes `GROUP_CONCAT`, et calcule la note moyenne avec `AVG`. Les filtres de recherche ajoutent des conditions `EXISTS` avec un paramètre nommé par valeur. L'ajout et la modification utilisent une **transaction** : le lieu et ses liens sont enregistrés ensemble ou pas du tout.
   - `UsersManager` hache les mots de passe avec `password_hash()`. Il transforme l'erreur MariaDB 1062 (doublon) en message lisible, et `verifyCredentials()` refuse les comptes désactivés.
 - **Intégration et vérification :** le code a été testé sur une base MariaDB 11 importée depuis `docker/db/init/02-site4night.sql`. Les tests couvrent la lecture, les filtres (comparés à des requêtes SQL écrites à la main), l'ajout, la modification, le refus et la suppression d'un lieu, la création de compte, la connexion, les doublons, la validation et une tentative d'injection SQL dans un filtre.
+
+### Claude (Anthropic) : pages publiques, novembre 2026
+
+- **Quand :** 18 novembre 2026, branche `feature/pages-publiques`.
+- **Fichiers concernés :** `public/index.php`, `public/spots/index.php`, `public/spots/view.php`, `public/css/styles.css`, `src/components/`, `src/classes/Ui/`, `src/classes/Reviews/`.
+- **Pourquoi :** réaliser les trois pages publiques prévues dans le cahier des charges (accueil, liste et recherche, fiche d'un lieu) en réutilisant les parties d'interface communes, comme vu au chapitre 5 du cours.
+- **Comment ça fonctionne :**
+  - `Ui\View::render()` reprend la fonction `render()` du cours sous forme de méthode statique. Elle vérifie le nom du composant (lettres, chiffres, tirets), transforme le tableau de données en variables avec `extract()`, puis inclut le fichier de `src/components/`.
+  - `Ui\Html::escape()` encapsule `htmlspecialchars()`. Toutes les valeurs affichées y passent. `nl2br()` est appliqué **après** l'échappement pour garder les retours à la ligne sans autoriser de HTML.
+  - `Ui\Labels` centralise les libellés français des codes de la base (`tent` donne « Tente »), pour préparer la gestion multilingue.
+  - `public/spots/index.php` lit les filtres dans `$_GET` et ne garde une valeur que si elle existe dans les listes de référence (cantons, types, équipements). Les choix sont réaffichés dans le formulaire.
+  - `public/spots/view.php` valide l'identifiant avec `filter_var(..., FILTER_VALIDATE_INT)` et renvoie une 404 si le lieu n'existe pas ou n'est pas publié.
+  - `ReviewsManager::getReviewsBySpot()` lit les avis avec une jointure sur `users` pour afficher le nom de l'auteur.
+- **Intégration et vérification :** les pages ont été testées sur MariaDB avec les données de test. Le nombre de résultats de chaque filtre a été comparé à une requête SQL écrite à la main. Les tests couvrent aussi les paramètres invalides ou manipulés, les lieux en attente ou refusés (404), une tentative de XSS dans le nom, la description et un avis (tout est affiché échappé), et le rendu en desktop et en mobile.
 
 ### Claude (Anthropic) : cahier des charges initial, septembre 2026
 
