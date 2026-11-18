@@ -81,7 +81,9 @@ Les lieux proposés par les utilisateurs sont validés par un administrateur ava
 │   └── db/init/             # Scripts SQL exécutés à la création de la BDD locale
 ├── bdd/                     # Schémas de la base de données
 ├── maquette/                # Maquette de l'interface utilisateur
-├── deploy/deploy.sh         # Envoi du code sur Infomaniak (rsync / SSH)
+├── deploy/
+│   ├── deploy.sh            # Envoi du code sur Infomaniak (rsync / SSH)
+│   └── deploy.env.example   # Modèle des identifiants SSH (copie locale non versionnée)
 ├── docker-compose.yml       # Environnement de développement local
 ├── .env.example             # Modèle des variables d'environnement locales
 ├── config.local.example.php # Modèle de configuration pour la production
@@ -147,10 +149,11 @@ L'application est hébergée chez Infomaniak à l'adresse <https://progserv2.lau
 
 Résumé (détails dans [`DEPLOIEMENT.md`](./DEPLOIEMENT.md)) :
 
-1. Le site pointe sur le dossier `sites/progserv2/public` du serveur.
+1. Le site pointe sur le dossier `sites/progserv2.laurenternst.ch/public` du serveur.
 2. La base est importée via phpMyAdmin à partir de `docker/db/init/02-site4night.sql`.
 3. Le fichier `config.local.php` (copié de `config.local.example.php`) est créé **directement sur le serveur**, à côté de `public/` et `src/`, avec les identifiants de la base.
-4. Le code est envoyé avec :
+4. Les identifiants SSH sont placés dans `deploy/deploy.env` (copie de `deploy/deploy.env.example`, jamais versionnée).
+5. Le code est envoyé avec :
 
    ```sh
    ./deploy/deploy.sh --dry   # simulation

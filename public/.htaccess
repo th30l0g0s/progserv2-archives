@@ -9,5 +9,8 @@ RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP_HOST} !^localhost [NC]
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# Ne jamais lister le contenu d'un dossier sans index
+Options -Indexes
+
 # Bloquer l'accès aux fichiers cachés (.env, .git…)
 RedirectMatch 404 /\..*$
