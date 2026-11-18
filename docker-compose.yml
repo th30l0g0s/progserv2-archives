@@ -1,3 +1,5 @@
+name: site4night
+
 services:
   # Apache + PHP 8.5 (un seul conteneur)
   web:

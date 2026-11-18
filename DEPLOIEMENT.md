@@ -18,7 +18,7 @@ Durée totale estimée : **45 à 60 min** la première fois, **2 min** ensuite (
 ### 1. Ajouter le sous-domaine comme site — 10 min
 1. Manager Infomaniak → Hébergement web → cliquer sur l'hébergement → **Ajouter**.
 2. Choisir « espace vide », puis l'option **sous-domaine** de `laurenternst.ch` → saisir `progserv2`.
-3. Options avancées → **Définir l'emplacement manuellement** → dossier : `/sites/progserv2/public`.
+3. Options avancées → **Définir l'emplacement manuellement** → dossier : `/sites/progserv2.laurenternst.ch/public`.
    - Raison : seul `public/` doit être accessible depuis le web. `src/` et `config.local.php` restent invisibles.
 4. Si le DNS de `laurenternst.ch` n'est pas géré chez Infomaniak : créer l'entrée chez le registrar.
 
@@ -46,17 +46,17 @@ Durée totale estimée : **45 à 60 min** la première fois, **2 min** ensuite (
 ### 6. Activer SSH et préparer la configuration — 10 min
 1. Manager → Hébergement → **FTP / SSH** → créer un compte, activer SSH. Noter utilisateur et hôte.
 2. Sur le Mac, tester : `ssh XXXX_user@XXXX.ftp.infomaniak.com`
-3. Sur le serveur, créer `sites/progserv2/config.local.php` à partir de `config.local.example.php` et remplir les 4 valeurs de l'étape 4 (`APP_ENV` = `prod`).
+3. Sur le serveur, créer `sites/progserv2.laurenternst.ch/config.local.php` à partir de `config.local.example.php` et remplir les 4 valeurs de l'étape 4 (`APP_ENV` = `prod`).
    - Ce fichier n'est jamais envoyé par le script ni commité (`.gitignore`).
 
 ### 7. Envoyer le code — 2 min (à chaque mise à jour)
-1. Ouvrir `deploy/deploy.sh` et remplacer `SSH_USER` et `SSH_HOST` (une seule fois).
+1. Une seule fois : `cp deploy/deploy.env.example deploy/deploy.env`, puis remplir `SSH_USER` et `SSH_HOST` (ce fichier n'est jamais commité).
 2. Simulation : `./deploy/deploy.sh --dry` → vérifier la liste des fichiers.
 3. Envoi réel : `./deploy/deploy.sh`
 
-Le script n'envoie que `public/` et `src/` (+ `config.local.example.php`). Docker, maquettes, BDD et Markdown restent sur le Mac.
+Le script n'envoie que `public/` et `src/`. Docker, maquettes, BDD et Markdown restent sur le Mac. L'option `--delete` ne supprime des fichiers qu'**à l'intérieur** de `public/` et `src/` : `config.local.php`, `.user.ini` et les fichiers d'Infomaniak à la racine du site ne sont jamais touchés.
 
-> Sans SSH : glisser `public/`, `src/` dans `sites/progserv2/` avec un client SFTP (Cyberduck, Transmit) ou le FTP Manager.
+> Sans SSH : glisser `public/`, `src/` dans `sites/progserv2.laurenternst.ch/` avec un client SFTP (Cyberduck, Transmit) ou le FTP Manager.
 
 ### 8. Vérifier — 2 min
 - `https://progserv2.laurenternst.ch` affiche la liste des lieux publiés.
@@ -69,7 +69,7 @@ Le script n'envoie que `public/` et `src/` (+ `config.local.example.php`). Docke
 - `config.local.example.php` (nouveau) : modèle à copier sur le serveur.
 - `public/index.php` : utilise les classes chargées par l'autoloader ; en prod, masque le détail des erreurs BDD et le lien de test mail.
 - `public/.htaccess` (nouveau) : HTTPS forcé (sauf `localhost`), erreurs masquées, fichiers cachés bloqués.
-- `deploy/deploy.sh` (nouveau) : envoi par rsync/SSH, avec mode simulation.
+- `deploy/deploy.sh` (nouveau) : envoi par rsync/SSH, avec mode simulation. Identifiants SSH dans `deploy/deploy.env` (modèle : `deploy/deploy.env.example`).
 - `.gitignore` : ajoute `config.local.php` et `.DS_Store`.
 
 Le fonctionnement local avec `docker compose up` reste identique.

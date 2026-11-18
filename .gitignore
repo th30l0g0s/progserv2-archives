@@ -2,3 +2,4 @@
 src/vendor/
 config.local.php
 .DS_Store
+deploy/deploy.env
