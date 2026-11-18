@@ -259,7 +259,26 @@ Conformément aux consignes du cours, cette section indique **quand**, **comment
   - `UsersManager` hache les mots de passe avec `password_hash()`. Il transforme l'erreur MariaDB 1062 (doublon) en message lisible, et `verifyCredentials()` refuse les comptes désactivés.
 - **Intégration et vérification :** le code a été testé sur une base MariaDB 11 importée depuis `docker/db/init/02-site4night.sql`. Les tests couvrent la lecture, les filtres (comparés à des requêtes SQL écrites à la main), l'ajout, la modification, le refus et la suppression d'un lieu, la création de compte, la connexion, les doublons, la validation et une tentative d'injection SQL dans un filtre.
 
-<!-- TODO Laurent : ajouter ici toute autre utilisation d'IA (cahier des charges, maquette, SQL, code à venir), au même format. Si aucune autre aide n'a été utilisée, l'écrire explicitement. -->
+### Claude (Anthropic) : cahier des charges initial, septembre 2026
+
+- **Quand :** 23 septembre 2026.
+- **Pourquoi :** structurer rapidement un cahier des charges conforme aux exigences du cours, à partir de l'idée du projet (référencer des lieux pour dormir en tente, en 4x4 ou en camping-car).
+- **Comment :** Claude a lu le README du projet libre sur le dépôt du cours, puis rédigé une première version complète du document en Markdown. Elle comprenait les rôles, les fonctionnalités principales et optionnelles, les pages prévues, une première ébauche du modèle de données, les contraintes techniques et la planification. Claude a aussi signalé les points à valider : les noms et rôles de l'équipe, l'autorisation d'une bibliothèque de cartographie et la question légale du camping sauvage, qui a conduit à la validation des lieux par un administrateur et à l'avertissement sur chaque fiche.
+- **Intégration :** le document a été relu, puis complété (équipe, rôles) avant d'être versionné dans `cahier_des_charges.md`.
+
+### Claude (Anthropic) : maquette Figma et page « en construction », octobre 2026
+
+- **Quand :** 7 octobre 2026.
+- **Pourquoi :** produire une maquette complète couvrant toutes les pages du cahier des charges, dans le délai de la séance 3.
+- **Comment :** à partir du cahier des charges stocké dans Notion, Claude a créé dans Figma (via son intégration) une maquette desktop de 14 écrans : les pages publiques, privées et d'administration. Il a aussi créé un système de design réutilisable (16 variables de couleur, 3 variantes d'en-tête selon le rôle, un pied de page et une carte de lieu en composants). La palette bleu nuit et ambre, la police Inter et le logo en croissant de lune sont des propositions de Claude, faute de direction graphique fournie. Claude a ensuite écrit la page HTML/CSS « Site en construction » (`maquette/index.html`) dans le même style.
+- **Intégration :** la maquette a été relue et sert de référence pour l'interface. Le fichier Figma est versionné dans `maquette/`. Les wireframes PDF de `maquette/All-wireframes/` ont été ajoutés par Samuel Develey.
+
+### [OUTIL À PRÉCISER] : correction du script SQL, octobre 2026
+
+- **Quand :** [DATE À PRÉCISER] octobre 2026.
+- **Pourquoi :** corriger des erreurs dans le script `docker/db/init/02-site4night.sql` (schéma et données de test).
+- **Comment :** [À PRÉCISER : quelles erreurs, et ce que l'outil a corrigé].
+- **Intégration :** le script corrigé est importé automatiquement par Docker au premier démarrage et a servi à initialiser la base de production.
 
 ## Conclusion
 
